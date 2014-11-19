@@ -1,8 +1,8 @@
 ## editable
-:local maildestination user_a@domain1.com; 
-:local maildestination2 user_b@domain2.com;
 :local pingretries 4;
 :local pingthres 4;
+:local host "192.168.6.200";
+:local path "/hipchat/ipalerts.php";
 ## end of editable section
 ##
 :local NodeList Nodes;
@@ -21,24 +21,37 @@
 ## logging section
 		:local logText ("FAIL: " . $destinationName . " (" . $destinationAddr . ")");
 		:log error ($logText . " " . $runtime);
-## send mail section
-		:local mailsubject ("FAIL: " . $destinationName . " (" . $destinationAddr . ")");
-		:local mailtext ("No s'ha pogut contactar amb: \r\n\t" . $destinationName . " " . $destinationAddr \
-		. "\r\nA les " . $runtime . "\r\n\r\n" \
-		. $senderName . "\r\n \
-		Network Monitor");
-		/tool e-mail send to=$maildestination subject=$mailsubject body=$mailtext start-tls=yes;
-		/tool e-mail send to=$maildestination2 subject=$mailsubject body=$mailtext start-tls=yes;
+## http notification
+		:do {
+			:local status "down";
+			:local from "unstable";
+			:local params "dst_name=$destinationName&dst_address=$destinationAddr&status=$status&from=$from";
+			:local url "http://$host$path\?$params";
+			:tool fetch keep-result=no url="$url";} on-error={:log error "Cannot notify via http";};
 	} else={
 		if ($pingcount = $pingthres) do={
 			/ip firewall address-list set $node list=$NodeList;
 ## logging section
 			:local logText ("Stable: " . $destinationName . " (" . $destinationAddr . ")");
 			:log info ($logText . " " . $runtime);
+## http notification
+			:do {
+				:local status "up";
+				:local from "unstable";
+				:local params "dst_name=$destinationName&dst_address=$destinationAddr&status=$status&from=$from";
+				:local url "http://$host$path\?$params";
+				:tool fetch keep-result=no url="$url";} on-error={:log error "Cannot notify via http";};
 		} else={
 ## logging section
 			:local logText ("Partially failed: " . $destinationName . " (" . $destinationAddr . ")");
 			:log warning ($logText . " " . $runtime);
+## http notification
+			:do {
+				:local status "unstable";
+				:local from "unstable";
+				:local params "dst_name=$destinationName&dst_address=$destinationAddr&status=$status&from=$from";
+				:local url "http://$host$path\?$params";
+				:tool fetch keep-result=no url="$url";} on-error={:log error "Cannot notify via http";};
 		}
 	}
 }

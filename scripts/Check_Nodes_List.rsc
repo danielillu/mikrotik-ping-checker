@@ -1,8 +1,8 @@
 ## editable
-:local maildestination user_a@domain1.com; 
-:local maildestination2 user_b@domain2.com;
 :local pingretries 4;
 :local pingthres 4;
+:local host "192.168.6.200";
+:local path "/hipchat/ipalerts.php";
 ## end of editable section
 ##
 :local NodeList Nodes;
@@ -21,5 +21,12 @@
 ## logging section
 		:local logText ("Partially failed: " . $destinationName . " (" . $destinationAddr . ")");
 		:log warning ($logText . " " . $runtime);
+## http notification
+		:do {
+			:local status "unstable";
+			:local from "up";
+			:local params "dst_name=$destinationName&dst_address=$destinationAddr&status=$status&from=$from";
+			:local url "http://$host$path\?$params";
+			:tool fetch keep-result=no url="$url";} on-error={:log error "Cannot notify via http";};
 	}
 }

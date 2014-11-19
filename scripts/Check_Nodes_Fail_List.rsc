@@ -1,8 +1,8 @@
 ## editable
-:local maildestination user_a@domain1.com; 
-:local maildestination2 user_b@domain2.com;
 :local pingretries 4;
 :local pingthres 4;
+:local host "192.168.6.200";
+:local path "/hipchat/ipalerts.php";
 ## end of editable section
 ##
 :local NodeList Nodes;
@@ -21,13 +21,12 @@
 ## logging section
 		:local logText ("WORKING: " . $destinationName . " (" . $destinationAddr . ")");
 		:log error ($logText . " " . $runtime);
-## send mail section
-		:local mailsubject ("WORKING: " . $destinationName . " (" . $destinationAddr . ")");
-		:local mailtext ("S'ha reestablert la comunicació amb: \r\n\t" . $destinationName . " " . $destinationAddr \
-		. "\r\nA les " . $runtime . "\r\n\r\n" \
-		. $senderName . "\r\n \
-		Network Monitor");
-		/tool e-mail send to=$maildestination subject=$mailsubject body=$mailtext start-tls=yes;
-		/tool e-mail send to=$maildestination2 subject=$mailsubject body=$mailtext start-tls=yes;
+## http notification
+		:do {
+			:local status "up";
+			:local from "down";
+			:local params "dst_name=$destinationName&dst_address=$destinationAddr&status=$status&from=$from";
+			:local url "http://$host$path\?$params";
+			:tool fetch keep-result=no url="$url";} on-error={:log error "Cannot notify via http";};
 	}
 }
